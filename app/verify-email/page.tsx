@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef, KeyboardEvent, useEffect } from "react";
+import { Suspense, useState, useRef, KeyboardEvent, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Mail, CheckCircle, RefreshCw, AlertCircle } from "lucide-react";
 
-export default function VerifyOtpPage() {
+function VerifyOtpContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const emailParam = searchParams.get("email") || "";
@@ -216,5 +216,17 @@ export default function VerifyOtpPage() {
         </p>
       </motion.div>
     </div>
+  );
+}
+
+export default function VerifyOtpPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <VerifyOtpContent />
+    </Suspense>
   );
 }
