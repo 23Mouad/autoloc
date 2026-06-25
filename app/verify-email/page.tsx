@@ -2,8 +2,9 @@
 
 import { Suspense, useState, useRef, KeyboardEvent, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
-import { Mail, CheckCircle, RefreshCw, AlertCircle } from "lucide-react";
+import { Mail, CheckCircle, Clock, RefreshCw, AlertCircle } from "lucide-react";
 
 function VerifyOtpContent() {
   const searchParams = useSearchParams();
@@ -15,7 +16,7 @@ function VerifyOtpContent() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<"" | "customer" | "pending_approval">("");
   const [cooldown, setCooldown] = useState(0);
 
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
@@ -73,8 +74,14 @@ function VerifyOtpContent() {
         return;
       }
 
-      setSuccess(true);
-      setTimeout(() => router.push("/"), 2500);
+      if (data.status === "pending_approval") {
+        // Car owner — account needs admin review
+        setSuccess("pending_approval");
+      } else {
+        // Regular customer — email verified, redirect to home so they can log in
+        setSuccess("customer");
+        setTimeout(() => router.push("/"), 2500);
+      }
     } catch {
       setError("Erreur réseau. Vérifiez votre connexion.");
     } finally {
@@ -107,7 +114,32 @@ function VerifyOtpContent() {
     }
   };
 
-  if (success) {
+  if (success === "pending_approval") {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="text-center max-w-sm"
+        >
+          <div className="w-20 h-20 rounded-full bg-yellow-500/10 flex items-center justify-center mx-auto mb-6">
+            <Clock size={40} className="text-yellow-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-text-primary mb-2">Email vérifié !</h2>
+          <p className="text-text-secondary mb-4">Votre compte propriétaire est en cours de vérification par notre équipe.</p>
+          <p className="text-text-muted text-sm">Vous recevrez un email dès que votre compte sera approuvé.</p>
+          <button
+            onClick={() => router.push("/")}
+            className="mt-6 px-6 py-2.5 bg-accent text-bg-primary font-semibold rounded-xl hover:bg-accent-light transition-all"
+          >
+            Retour à l&apos;accueil
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (success === "customer") {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <motion.div
@@ -119,7 +151,7 @@ function VerifyOtpContent() {
             <CheckCircle size={40} className="text-success" />
           </div>
           <h2 className="text-2xl font-bold text-text-primary mb-2">Email vérifié !</h2>
-          <p className="text-text-secondary">Votre compte est maintenant actif. Redirection...</p>
+          <p className="text-text-secondary">Votre compte est actif. Connectez-vous pour continuer. Redirection...</p>
         </motion.div>
       </div>
     );

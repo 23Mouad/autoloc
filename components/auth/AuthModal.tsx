@@ -107,13 +107,27 @@ export default function AuthModal({ isOpen, onClose, initialView = "login" }: Au
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        // Surface specific error codes from the authorize() callback
+        if (result.error.includes("email_not_verified")) {
+          // Redirect to verify-email so they can complete verification
+          handleClose();
+          window.location.href = `/verify-email?email=${encodeURIComponent(loginEmail)}`;
+          return;
+        } else if (result.error.includes("pending_approval")) {
+          setError("Votre compte est en attente de validation par l'administrateur.");
+        } else if (result.error.includes("account_locked")) {
+          setError("Compte temporairement bloqué suite à trop de tentatives. Réessayez dans 15 minutes.");
+        } else if (result.error.includes("account_suspended")) {
+          setError("Votre compte a été suspendu. Contactez l'administrateur.");
+        } else {
+          setError("Email ou mot de passe incorrect.");
+        }
       } else {
         handleClose();
         window.location.reload();
       }
     } catch {
-      setError("Something went wrong");
+      setError("Une erreur est survenue. Vérifiez votre connexion.");
     } finally {
       setLoading(false);
     }
@@ -144,25 +158,17 @@ export default function AuthModal({ isOpen, onClose, initialView = "login" }: Au
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Registration failed");
+        setError(data.error || "Échec de l'inscription.");
         return;
       }
 
-      // Auto sign-in after registration
-      const signInResult = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (signInResult?.error) {
-        setError("Registered, but login failed. Try logging in manually.");
-      } else {
-        handleClose();
-        window.location.reload();
-      }
+      // Registration succeeded — user must verify email first.
+      // Do NOT attempt signIn here: the user has emailVerified=false
+      // and auth will block them. Redirect to the OTP verification page.
+      handleClose();
+      window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
     } catch {
-      setError("Something went wrong");
+      setError("Une erreur est survenue. Vérifiez votre connexion.");
     } finally {
       setLoading(false);
     }
