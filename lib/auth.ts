@@ -1,8 +1,14 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
+
+// Custom error classes that NextAuth v5 will surface as `result.error` on the client
+class EmailNotVerifiedError  extends CredentialsSignin { code = "email_not_verified"; }
+class PendingApprovalError   extends CredentialsSignin { code = "pending_approval"; }
+class AccountLockedError     extends CredentialsSignin { code = "account_locked"; }
+class AccountSuspendedError  extends CredentialsSignin { code = "account_suspended"; }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -24,7 +30,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Brute-force: check if account is temporarily locked
         if (user.lockUntil && user.lockUntil > new Date()) {
-          throw new Error("account_locked");
+          throw new AccountLockedError();
         }
 
         const isValid = await bcrypt.compare(credentials.password as string, user.password);
@@ -40,7 +46,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        // Reset attempts on successful login
+        // Reset attempts on successful password match
         await User.updateOne(
           { _id: user._id },
           { $set: { loginAttempts: 0 }, $unset: { lockUntil: "" } }
@@ -48,24 +54,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Gate: email must be verified
         if (!user.emailVerified) {
-          throw new Error("email_not_verified");
+          throw new EmailNotVerifiedError();
         }
 
-        // Gate: car owners must be approved (active or hidden)
-        if (
-          user.role === "renter" &&
-          user.status !== "active" &&
-          user.status !== "hidden"
-        ) {
-          if (user.status === "pending_approval") {
-            throw new Error("pending_approval");
-          }
-          throw new Error("account_suspended");
+        // Gate: car owners must be approved
+        if (user.role === "renter") {
+          if (user.status === "pending_approval") throw new PendingApprovalError();
+          if (user.status !== "active" && user.status !== "hidden") throw new AccountSuspendedError();
         }
 
-        // Gate: any suspended account
+        // Gate: any suspended account (all roles)
         if (user.status === "suspended") {
-          throw new Error("account_suspended");
+          throw new AccountSuspendedError();
         }
 
         return {

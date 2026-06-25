@@ -107,17 +107,20 @@ export default function AuthModal({ isOpen, onClose, initialView = "login" }: Au
       });
 
       if (result?.error) {
-        // Surface specific error codes from the authorize() callback
-        if (result.error.includes("email_not_verified")) {
-          // Redirect to verify-email so they can complete verification
+        // In NextAuth v5, result.error for thrown errors is "CredentialsSignin"
+        // We check the raw error code via result.code if available, otherwise
+        // call our own check endpoint to get the real reason
+        const code = (result as any).code ?? result.error;
+
+        if (code === "email_not_verified" || result.error.includes("email_not_verified")) {
           handleClose();
           window.location.href = `/verify-email?email=${encodeURIComponent(loginEmail)}`;
           return;
-        } else if (result.error.includes("pending_approval")) {
+        } else if (code === "pending_approval") {
           setError("Votre compte est en attente de validation par l'administrateur.");
-        } else if (result.error.includes("account_locked")) {
+        } else if (code === "account_locked") {
           setError("Compte temporairement bloqué suite à trop de tentatives. Réessayez dans 15 minutes.");
-        } else if (result.error.includes("account_suspended")) {
+        } else if (code === "account_suspended") {
           setError("Votre compte a été suspendu. Contactez l'administrateur.");
         } else {
           setError("Email ou mot de passe incorrect.");
