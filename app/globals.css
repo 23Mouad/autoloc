@@ -1,26 +1,179 @@
 @import "tailwindcss";
 
+/* ── Design Tokens — Dark (default) ── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-primary: #0a0a0c;
+  --bg-secondary: #111115;
+  --bg-elevated: #1a1a20;
+  --accent: #c1e930;
+  --accent-light: #d4f24d;
+  --accent-dim: rgba(193, 233, 48, 0.12);
+  --text-primary: #f0ede8;
+  --text-secondary: #9a9690;
+  --text-muted: #5a5855;
+  --border: #2a2a30;
+  --success: #3cb97a;
+  --danger: #e05252;
+  --glass-bg: rgba(17, 17, 21, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Design Tokens — Light ── */
+[data-theme="light"] {
+  --bg-primary: #f5f5f7;
+  --bg-secondary: #ffffff;
+  --bg-elevated: #eaeaee;
+  --accent: #7aad0a;
+  --accent-light: #8fc412;
+  --accent-dim: rgba(122, 173, 10, 0.1);
+  --text-primary: #1a1a1e;
+  --text-secondary: #5c5c66;
+  --text-muted: #9a9aa5;
+  --border: #d8d8dd;
+  --success: #2d9960;
+  --danger: #d04040;
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(0, 0, 0, 0.06);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-accent-dim: var(--accent-dim);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-glass-bg: var(--glass-bg);
+  --color-glass-border: var(--glass-border);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Base ── */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-outfit), var(--font-tajawal), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* ── Typography ── */
+h1, h2, h3 {
+  font-family: var(--font-space), var(--font-tajawal), system-ui, sans-serif;
+  font-style: normal;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+h1 { font-size: 3.5rem; line-height: 1.1; font-weight: 600; }
+h2 { font-size: 2.5rem; line-height: 1.2; font-weight: 600; }
+h3 { font-size: 1.75rem; line-height: 1.3; font-weight: 500; }
+
+@media (max-width: 768px) {
+  h1 { font-size: 2.25rem; }
+  h2 { font-size: 1.75rem; }
+  h3 { font-size: 1.35rem; }
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* ── Focus ── */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Skip Link ── */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  background: var(--accent);
+  color: var(--bg-primary);
+  padding: 0.75rem 1.5rem;
+  z-index: 9999;
+  font-weight: 600;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 0;
+}
+
+/* ── Glass effect ── */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+}
+
+/* ── Accent underline ── */
+.accent-underline {
+  position: relative;
+  display: inline-block;
+}
+.accent-underline::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 60px;
+  height: 2px;
+  background: var(--accent);
+}
+
+/* ── Custom scrollbar for carousel ── */
+.carousel-scroll {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.carousel-scroll::-webkit-scrollbar {
+  display: none;
+}
+.carousel-scroll > * {
+  scroll-snap-align: start;
+}
+
+/* ── Leaflet overrides ── */
+.leaflet-popup-content-wrapper {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--border) !important;
+}
+.leaflet-popup-tip {
+  background: var(--bg-secondary) !important;
+}
+.leaflet-popup-close-button {
+  color: var(--text-secondary) !important;
 }
