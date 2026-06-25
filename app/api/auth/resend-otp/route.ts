@@ -4,6 +4,7 @@ import dbConnect from "@/lib/mongodb";
 import Otp from "@/models/Otp";
 import User from "@/models/User";
 import { sendOtpEmail } from "@/lib/email";
+import { otpResendRateLimit } from "@/lib/rateLimit";
 
 // POST /api/auth/resend-otp
 export async function POST(req: NextRequest) {
@@ -12,7 +13,16 @@ export async function POST(req: NextRequest) {
     const { email } = body;
 
     if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+      return NextResponse.json({ error: "Email obligatoire." }, { status: 400 });
+    }
+
+    // Per-email rate limit: 3 resends per 10 minutes
+    const rl = otpResendRateLimit(email.toLowerCase());
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: "Trop de demandes. Réessayez dans quelques minutes." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+      );
     }
 
     await dbConnect();

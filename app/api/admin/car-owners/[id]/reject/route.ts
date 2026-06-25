@@ -9,11 +9,12 @@ import { sendAccountRejectedEmail } from "@/lib/email";
 // POST /api/admin/car-owners/[id]/reject
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireAdmin();
-    const admin   = sessionUser(session);
+    const session    = await requireAdmin();
+    const admin      = sessionUser(session);
+    const { id }     = await params;
 
     await dbConnect();
 
@@ -21,7 +22,7 @@ export async function POST(
     const reason = body.reason as string | undefined;
 
     const owner = await User.findOne({
-      _id:       params.id,
+      _id:       id,
       role:      "renter",
       deletedAt: { $exists: false },
     });

@@ -18,7 +18,7 @@ const AuditLogSchema = new Schema<IAuditLog>(
     targetType: { type: String },
     details:    { type: Schema.Types.Mixed },
   },
-  { timestamps: true, updatedAt: false }
+  { timestamps: { createdAt: "createdAt", updatedAt: false } }
 );
 
 AuditLogSchema.index({ adminId: 1, createdAt: -1 });

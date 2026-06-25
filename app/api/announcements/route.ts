@@ -73,13 +73,15 @@ export async function POST(req: NextRequest) {
     const announcement = await Announcement.create({
       title,
       content,
-      image: image || undefined,
-      ownerId: (session.user as Record<string, unknown>).id,
+      image:    image || undefined,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ownerId:  (session.user as any).id as string,
       isGlobal: role === "admin" ? (body.isGlobal ?? true) : false,
     });
 
     return NextResponse.json(
-      { message: "Announcement created", id: announcement._id.toString() },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { message: "Announcement created", id: (announcement as any)._id.toString() },
       { status: 201 }
     );
   } catch (error) {

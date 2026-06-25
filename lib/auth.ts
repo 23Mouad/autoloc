@@ -134,13 +134,16 @@ export async function requireCarOwner() {
   return session;
 }
 
-/** Extracts typed user fields from a session */
-export function sessionUser(session: Awaited<ReturnType<typeof auth>>) {
-  return session!.user as {
-    id:     string;
-    email:  string;
-    name:   string;
-    role:   "admin" | "renter" | "customer";
-    status: string;
-  };
+export interface AuthUser {
+  id:     string;
+  email:  string;
+  name:   string;
+  role:   "admin" | "renter" | "customer";
+  status: string;
+}
+
+/** Extracts typed user fields from an authenticated session object */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function sessionUser(session: any): AuthUser {
+  return session!.user as AuthUser;
 }

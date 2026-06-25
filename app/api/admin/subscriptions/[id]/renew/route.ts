@@ -10,15 +10,16 @@ import { sendSubscriptionRenewedEmail } from "@/lib/email";
 // POST /api/admin/subscriptions/[id]/renew
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAdmin();
     const admin   = sessionUser(session);
+    const { id }  = await params;
 
     await dbConnect();
 
-    const sub = await Subscription.findById(params.id).populate<{
+    const sub = await Subscription.findById(id).populate<{
       ownerId: { _id: unknown; name: string; lastName: string; email: string };
     }>("ownerId", "name lastName email");
 
@@ -41,9 +42,10 @@ export async function POST(
     await sub.save();
 
     // Restore car owner visibility
-    const ownerId = sub.ownerId._id;
-    await User.updateOne({ _id: ownerId }, { $set: { status: "active" } });
-    await Car.updateMany({ ownerId }, { $set: { available: true } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ownerId = (sub.ownerId as any)._id || sub.ownerId;
+    await User.updateOne({ _id: ownerId } as any, { $set: { status: "active" } });
+    await Car.updateMany({ ownerId } as any, { $set: { available: true } });
 
     // Audit log
     await AuditLog.create({
