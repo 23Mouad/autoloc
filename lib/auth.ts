@@ -52,6 +52,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           { $set: { loginAttempts: 0 }, $unset: { lockUntil: "" } }
         );
 
+        // Admins bypass all gates
+        if (user.role === "admin") {
+          return {
+            id:     user._id.toString(),
+            email:  user.email,
+            name:   `${user.name} ${user.lastName}`,
+            role:   user.role,
+            status: user.status,
+          };
+        }
+
         // Gate: email must be verified
         if (!user.emailVerified) {
           throw new EmailNotVerifiedError();
