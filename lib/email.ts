@@ -446,3 +446,289 @@ export async function sendPasswordResetEmail(opts: {
     html: html("Réinitialisation mot de passe", body),
   });
 }
+
+// ============================================================
+//  NEW TEMPLATES — CAR RENTAL PLATFORM (v2)
+// ============================================================
+
+/** 13. Account pending approval — sent to car owner after email verification */
+export async function sendAccountPendingApprovalEmail(opts: {
+  to: string;
+  name: string;
+}) {
+  const body = `
+    ${h2("Compte en attente de validation ⏳")}
+    ${p(`Bonjour <strong style="color:${TEXT};">${opts.name}</strong>,`)}
+    ${p("Merci d'avoir vérifié votre adresse email. Votre demande d'inscription en tant que <strong style=\"color:" + TEXT + ";\">propriétaire de véhicules</strong> est maintenant en cours d'examen par notre équipe.")}
+    ${infoTable([
+      ["Statut", "En attente de validation"],
+      ["Délai estimé", "24 à 48 heures ouvrables"],
+    ])}
+    ${divider()}
+    ${p("Vous recevrez un email dès qu'une décision sera prise. En attendant, vous ne pouvez pas encore accéder à la plateforme.")}
+    ${p("Des questions ? Contactez-nous à tout moment.", "color:" + MUTED)}
+    ${btn("Nous contacter", "http://localhost:3000/contact")}
+    ${divider()}
+    <p dir="rtl" style="margin:0 0 12px;font-size:14px;color:${MUTED};line-height:1.7;text-align:right;">
+      مرحباً <strong style="color:${TEXT};">${opts.name}</strong>،<br/>
+      شكراً على تسجيلك كمالك مركبات. طلبك قيد المراجعة من قِبَل فريقنا وستصلك رسالة بالقرار في غضون 24 إلى 48 ساعة عمل.
+    </p>
+  `;
+  await transporter.sendMail({
+    from: FROM,
+    to:   opts.to,
+    subject: "⏳ Compte en attente de validation – AutoLoc Annaba",
+    html: html("Compte en attente", body),
+  });
+}
+
+/** 14. Account approved — car owner account approved, trial starts now */
+export async function sendAccountApprovedEmail(opts: {
+  to: string;
+  name: string;
+  trialEndDate: string;
+}) {
+  const body = `
+    ${h2("Félicitations ! Votre compte est approuvé 🎉")}
+    ${p(`Bonjour <strong style="color:${TEXT};">${opts.name}</strong>,`)}
+    ${p("Votre demande d'inscription en tant que propriétaire de véhicules a été <strong style=\"color:#22c55e;\">approuvée</strong>. Vous pouvez maintenant vous connecter et ajouter vos véhicules.")}
+    ${infoTable([
+      ["Statut", "✅ Approuvé"],
+      ["Période d'essai gratuite", "30 jours"],
+      ["Fin de la période d'essai", opts.trialEndDate],
+      ["Abonnement mensuel (après essai)", "2 000 DZD / mois"],
+    ])}
+    ${divider()}
+    ${p("Profitez de votre période d'essai pour configurer votre profil et ajouter vos véhicules !")}
+    ${btn("Accéder à mon espace", "http://localhost:3000/account/dashboard")}
+    ${divider()}
+    <p dir="rtl" style="margin:0 0 12px;font-size:14px;color:${MUTED};line-height:1.7;text-align:right;">
+      مبروك <strong style="color:${TEXT};">${opts.name}</strong>! 🎉<br/>
+      تمت الموافقة على حسابك. يمكنك الآن تسجيل الدخول وإضافة مركباتك.<br/>
+      تبدأ فترة التجربة المجانية الآن (30 يوماً) وتنتهي في ${opts.trialEndDate}.
+    </p>
+  `;
+  await transporter.sendMail({
+    from: FROM,
+    to:   opts.to,
+    subject: "🎉 Compte approuvé — Bienvenue sur AutoLoc Annaba !",
+    html: html("Compte approuvé", body),
+  });
+}
+
+/** 15. Account rejected — car owner application rejected */
+export async function sendAccountRejectedEmail(opts: {
+  to: string;
+  name: string;
+  reason?: string;
+}) {
+  const body = `
+    ${h2("Décision sur votre demande d'inscription")}
+    ${p(`Bonjour <strong style="color:${TEXT};">${opts.name}</strong>,`)}
+    ${p("Après examen de votre demande d'inscription en tant que propriétaire de véhicules, nous ne sommes malheureusement pas en mesure de l'accepter pour le moment.")}
+    ${opts.reason ? infoTable([["Motif", opts.reason]]) : ""}
+    ${divider()}
+    ${p("Si vous pensez qu'il s'agit d'une erreur ou souhaitez plus d'informations, contactez notre équipe.")}
+    ${btn("Nous contacter", "http://localhost:3000/contact")}
+    ${divider()}
+    <p dir="rtl" style="margin:0 0 12px;font-size:14px;color:${MUTED};line-height:1.7;text-align:right;">
+      عزيزي <strong style="color:${TEXT};">${opts.name}</strong>،<br/>
+      بعد مراجعة طلبك، نأسف لإبلاغك بأنه لم يتم قبوله في الوقت الحالي.
+      ${opts.reason ? `<br/>السبب: <strong style="color:${TEXT};">${opts.reason}</strong>` : ""}
+      <br/>يمكنك التواصل معنا لمزيد من التوضيح.
+    </p>
+  `;
+  await transporter.sendMail({
+    from: FROM,
+    to:   opts.to,
+    subject: "📋 Décision sur votre demande – AutoLoc Annaba",
+    html: html("Demande refusée", body),
+  });
+}
+
+/** 16. Trial ending reminder (7 days, 3 days, or 1 day before) */
+export async function sendTrialEndingReminderEmail(opts: {
+  to: string;
+  name: string;
+  daysLeft: number;
+  trialEndDate: string;
+}) {
+  const urgency = opts.daysLeft === 1 ? "⚠️ URGENT – " : "";
+  const body = `
+    ${h2(`${urgency}Votre période d'essai se termine bientôt ⏰`)}
+    ${p(`Bonjour <strong style="color:${TEXT};">${opts.name}</strong>,`)}
+    ${p(`Il vous reste seulement <strong style="color:${ACCENT};">${opts.daysLeft} jour${opts.daysLeft > 1 ? "s" : ""}</strong> de période d'essai gratuite.`)}
+    ${infoTable([
+      ["Fin de la période d'essai", opts.trialEndDate],
+      ["Abonnement mensuel", "2 000 DZD / mois"],
+      ["Après expiration", "Votre profil et vos véhicules seront masqués"],
+    ])}
+    ${divider()}
+    ${p("Pour continuer à proposer vos véhicules sur la plateforme, renouvelez votre abonnement avant l'échéance.")}
+    ${btn("Contacter l'administration", "http://localhost:3000/contact")}
+    ${divider()}
+    <p dir="rtl" style="margin:0 0 12px;font-size:14px;color:${MUTED};line-height:1.7;text-align:right;">
+      عزيزي <strong style="color:${TEXT};">${opts.name}</strong>،<br/>
+      تبقى لك <strong style="color:${ACCENT};">${opts.daysLeft} يوم</strong> فقط من فترة التجربة المجانية (تنتهي ${opts.trialEndDate}).<br/>
+      بعد انتهائها سيتم إخفاء ملفك الشخصي ومركباتك. يرجى تجديد اشتراكك.
+    </p>
+  `;
+  await transporter.sendMail({
+    from: FROM,
+    to:   opts.to,
+    subject: `${urgency}⏰ Plus que ${opts.daysLeft} jour(s) d'essai – AutoLoc Annaba`,
+    html: html("Fin d'essai imminente", body),
+  });
+}
+
+/** 17. Trial expired — account hidden */
+export async function sendTrialExpiredEmail(opts: {
+  to: string;
+  name: string;
+}) {
+  const body = `
+    ${h2("Votre période d'essai est terminée 📅")}
+    ${p(`Bonjour <strong style="color:${TEXT};">${opts.name}</strong>,`)}
+    ${p("Votre période d'essai gratuite de 30 jours est arrivée à expiration. Votre profil et vos véhicules ont été <strong style=\"color:#ef4444;\">temporairement masqués</strong> de la plateforme.")}
+    ${infoTable([
+      ["Statut", "⛔ Essai expiré"],
+      ["Abonnement mensuel", "2 000 DZD / mois"],
+      ["Pour réactiver", "Contactez l'administration"],
+    ])}
+    ${divider()}
+    ${p("Renouvelez votre abonnement dès maintenant pour restaurer la visibilité de vos annonces.")}
+    ${btn("Renouveler mon abonnement", "http://localhost:3000/contact")}
+    ${divider()}
+    <p dir="rtl" style="margin:0 0 12px;font-size:14px;color:${MUTED};line-height:1.7;text-align:right;">
+      عزيزي <strong style="color:${TEXT};">${opts.name}</strong>،<br/>
+      انتهت فترة تجربتك المجانية. تم إخفاء ملفك الشخصي ومركباتك مؤقتاً.<br/>
+      لإعادة التفعيل، يرجى تجديد الاشتراك (2000 دج / شهر) عن طريق التواصل مع الإدارة.
+    </p>
+  `;
+  await transporter.sendMail({
+    from: FROM,
+    to:   opts.to,
+    subject: "📅 Période d'essai expirée – AutoLoc Annaba",
+    html: html("Essai expiré", body),
+  });
+}
+
+/** 18. Subscription expired (monthly) */
+export async function sendSubscriptionExpiredEmail(opts: {
+  to: string;
+  name: string;
+}) {
+  const body = `
+    ${h2("Votre abonnement a expiré 🔴")}
+    ${p(`Bonjour <strong style="color:${TEXT};">${opts.name}</strong>,`)}
+    ${p("Votre abonnement mensuel a expiré. Votre profil et vos véhicules ont été <strong style=\"color:#ef4444;\">masqués</strong> de la plateforme jusqu'au renouvellement.")}
+    ${infoTable([
+      ["Statut abonnement", "⛔ Expiré"],
+      ["Tarif de renouvellement", "2 000 DZD / mois"],
+    ])}
+    ${divider()}
+    ${p("Contactez notre équipe pour renouveler votre abonnement et restaurer vos annonces.")}
+    ${btn("Renouveler maintenant", "http://localhost:3000/contact")}
+    ${divider()}
+    <p dir="rtl" style="margin:0 0 12px;font-size:14px;color:${MUTED};line-height:1.7;text-align:right;">
+      عزيزي <strong style="color:${TEXT};">${opts.name}</strong>،<br/>
+      انتهت صلاحية اشتراكك الشهري. تم إخفاء إعلاناتك ومركباتك.<br/>
+      يرجى تجديد الاشتراك (2000 دج/شهر) للعودة إلى المنصة.
+    </p>
+  `;
+  await transporter.sendMail({
+    from: FROM,
+    to:   opts.to,
+    subject: "🔴 Abonnement expiré – AutoLoc Annaba",
+    html: html("Abonnement expiré", body),
+  });
+}
+
+/** 19. Subscription renewed */
+export async function sendSubscriptionRenewedEmail(opts: {
+  to: string;
+  name: string;
+  nextRenewalDate: string;
+}) {
+  const body = `
+    ${h2("Abonnement renouvelé avec succès ✅")}
+    ${p(`Bonjour <strong style="color:${TEXT};">${opts.name}</strong>,`)}
+    ${p("Votre abonnement mensuel a été <strong style=\"color:#22c55e;\">renouvelé</strong>. Votre profil et vos véhicules sont de nouveau visibles sur la plateforme.")}
+    ${infoTable([
+      ["Statut abonnement", "✅ Actif"],
+      ["Prochain renouvellement", opts.nextRenewalDate],
+      ["Tarif mensuel", "2 000 DZD"],
+    ])}
+    ${divider()}
+    ${p("Merci de continuer à utiliser AutoLoc Annaba !")}
+    ${btn("Accéder à mon espace", "http://localhost:3000/account/dashboard")}
+    ${divider()}
+    <p dir="rtl" style="margin:0 0 12px;font-size:14px;color:${MUTED};line-height:1.7;text-align:right;">
+      عزيزي <strong style="color:${TEXT};">${opts.name}</strong>،<br/>
+      تم تجديد اشتراكك الشهري بنجاح ✅. ملفك الشخصي ومركباتك مرئية مجدداً.<br/>
+      تاريخ التجديد القادم: <strong style="color:${TEXT};">${opts.nextRenewalDate}</strong>
+    </p>
+  `;
+  await transporter.sendMail({
+    from: FROM,
+    to:   opts.to,
+    subject: "✅ Abonnement renouvelé – AutoLoc Annaba",
+    html: html("Abonnement renouvelé", body),
+  });
+}
+
+/** 20. Admin announcement broadcast (email copy) */
+export async function sendAdminAnnouncementEmail(opts: {
+  to: string;
+  recipientName: string;
+  title: string;
+  message: string;
+}) {
+  const body = `
+    ${h2(`📢 ${opts.title}`)}
+    ${p(`Bonjour <strong style="color:${TEXT};">${opts.recipientName}</strong>,`)}
+    ${p("Vous avez reçu un message de l'administration d'AutoLoc Annaba :")}
+    ${divider()}
+    <div style="background:#0f172a;border-radius:10px;border:1px solid #334155;padding:20px 24px;margin:12px 0;">
+      <p style="margin:0;font-size:15px;color:${TEXT};line-height:1.8;">${opts.message.replace(/\n/g, "<br/>")}</p>
+    </div>
+    ${divider()}
+    ${btn("Voir mes notifications", "http://localhost:3000/account/notifications")}
+  `;
+  await transporter.sendMail({
+    from: FROM,
+    to:   opts.to,
+    subject: `📢 ${opts.title} – AutoLoc Annaba`,
+    html: html(opts.title, body),
+  });
+}
+
+/** 21. Admin notified of new car owner registration awaiting approval */
+export async function sendAdminNewCarOwnerEmail(opts: {
+  adminEmail: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPhone: string;
+  ownerWilaya: string;
+  userId: string;
+}) {
+  const body = `
+    ${h2("🔔 Nouveau propriétaire en attente de validation")}
+    ${p("Un nouveau propriétaire de véhicules vient de créer et vérifier son compte. Il attend votre approbation.")}
+    ${infoTable([
+      ["Nom complet", opts.ownerName],
+      ["Email",       opts.ownerEmail],
+      ["Téléphone",   opts.ownerPhone],
+      ["Wilaya",      opts.ownerWilaya],
+      ["ID utilisateur", opts.userId.slice(-8).toUpperCase()],
+    ])}
+    ${divider()}
+    ${btn("Gérer les approbations", "http://localhost:3000/admin/car-owners")}
+  `;
+  await transporter.sendMail({
+    from: FROM,
+    to:   opts.adminEmail,
+    subject: `🔔 Nouveau propriétaire en attente – ${opts.ownerName} | AutoLoc`,
+    html: html("Approbation requise", body),
+  });
+}
